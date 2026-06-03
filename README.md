@@ -13,6 +13,7 @@
 ## Локальный запуск
 
 ```powershell
+cd "C:\Users\ioank\OneDrive\Документы\New project\vsau_public_deploy"
 pip install -r requirements.txt
 python public_server.py
 ```
@@ -27,6 +28,14 @@ http://127.0.0.1:8000/
 
 ```powershell
 python public_server.py 8080
+```
+
+После запуска доступны разделы:
+
+```text
+http://127.0.0.1:8000/students/
+http://127.0.0.1:8000/teachers/
+http://127.0.0.1:8000/rooms/
 ```
 
 ## Публикация
@@ -46,6 +55,7 @@ vsau_room_schedule_site/         раздел аудиторий
 requirements.txt                 зависимости Python
 render.yaml                      конфигурация Render
 Dockerfile                       контейнер для VPS/Railway/Docker
+GITHUB_UPLOAD.md                 инструкция загрузки на GitHub
 ```
 
 ## Источник расписания

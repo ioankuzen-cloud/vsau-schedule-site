@@ -16,23 +16,7 @@ C:\Users\ioank\OneDrive\Документы\New project\vsau_public_deploy
 cd "C:\Users\ioank\OneDrive\Документы\New project\vsau_public_deploy"
 ```
 
-3. Один раз настроить имя и email для Git:
-
-```powershell
-git config --global user.name "Ваше имя"
-git config --global user.email "ваш-email@example.com"
-```
-
-Лучше использовать email от аккаунта GitHub.
-
-4. Сделать коммит:
-
-```powershell
-git add .
-git commit -m "Initial VSAU schedule site"
-```
-
-5. Создать пустой репозиторий на GitHub.
+3. Создать пустой репозиторий на GitHub.
 
 Например с названием:
 
@@ -42,19 +26,27 @@ vsau-schedule-site
 
 Не добавлять README, `.gitignore` и License на сайте GitHub, потому что они уже есть в проекте.
 
-6. Подключить GitHub-репозиторий:
+4. Подключить GitHub-репозиторий:
 
 ```powershell
-git branch -M main
 git remote add origin https://github.com/USERNAME/vsau-schedule-site.git
 ```
 
 Вместо `USERNAME` указать свой логин GitHub.
 
-7. Отправить проект:
+5. Отправить проект:
 
 ```powershell
 git push -u origin main
+```
+
+Если Git попросит авторизацию, войти через браузер или использовать GitHub Desktop.
+
+Если надо изменить коммит перед отправкой:
+
+```powershell
+git add .
+git commit -m "Update site"
 ```
 
 ## Вариант 2: через GitHub Desktop
