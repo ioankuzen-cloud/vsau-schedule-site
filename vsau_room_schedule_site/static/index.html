@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Расписание аудиторий ВГАУ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/rooms/styles.css?v=20260602-final">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="https://www.vsau.ru/" target="_blank" rel="noreferrer">
+        <img src="https://www.vsau.ru/wp-content/themes/vsau-v2-theme/assets/icons/svg/dark-logo.svg" alt="ВГАУ">
+      </a>
+      <nav class="nav">
+        <a class="nav-link" href="/students/">Студенты</a>
+        <a class="nav-link" href="/teachers/">Преподаватели</a>
+        <a class="nav-link active" href="/rooms/">Аудитории</a>
+        <a class="nav-link" href="https://drive.google.com/drive/folders/1Gn8OEzbtxFBusuCnPCTBjQoK1AWKiVN2" target="_blank" rel="noreferrer">Google Drive</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div>ФГБОУ ВО Воронежский ГАУ</div>
+        <div>Отдельное расписание аудиторий</div>
+      </div>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Расписание занятий очной формы обучения</p>
+          <h1>Расписание аудиторий</h1>
+        </div>
+        <button class="icon-button" id="refreshTreeBtn" type="button" title="Обновить структуру">↻</button>
+      </header>
+
+      <section class="controls">
+        <label class="control">
+          <span>Семестр</span>
+          <select id="semesterSelect"></select>
+        </label>
+        <label class="control">
+          <span>Раздел</span>
+          <select id="sectionSelect"></select>
+        </label>
+        <button class="button" id="loadBtn" type="button">Собрать расписание</button>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel index-panel">
+          <label class="search">
+            <span>Поиск</span>
+            <input id="searchInput" type="search" placeholder="Аудитория, предмет или преподаватель">
+          </label>
+
+          <div class="week-tabs">
+            <button class="week-tab active" data-week="current" type="button">Текущая</button>
+            <button class="week-tab" data-week="numerator" type="button">Числитель</button>
+            <button class="week-tab" data-week="denominator" type="button">Знаменатель</button>
+            <button class="week-tab" data-week="all" type="button">Все</button>
+          </div>
+
+          <div class="status" id="status">Нажмите «Собрать расписание», чтобы получить список аудиторий.</div>
+          <div class="entity-list" id="entityList"></div>
+        </aside>
+
+        <section class="panel schedule-panel">
+          <div class="schedule-head">
+            <div>
+              <p class="eyebrow" id="scheduleMeta">Нет выбранного расписания</p>
+              <h2 id="scheduleTitle">Выберите аудиторию</h2>
+            </div>
+          </div>
+          <div class="schedule-content" id="scheduleContent">
+            <div class="empty-state">После сборки слева появится список аудиторий.</div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/rooms/app.js?v=20260602-final"></script>
+  </body>
+</html>

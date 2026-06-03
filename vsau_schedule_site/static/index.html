@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Расписание занятий ВГАУ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/students/styles.css?v=20260602-cleanlabels">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="https://www.vsau.ru/" target="_blank" rel="noreferrer">
+        <img src="https://www.vsau.ru/wp-content/themes/vsau-v2-theme/assets/icons/svg/dark-logo.svg" alt="ВГАУ">
+      </a>
+
+      <nav class="nav">
+        <a class="nav-link active" href="/students/">Студенты</a>
+        <a class="nav-link" href="/teachers/">Преподаватели</a>
+        <a class="nav-link" href="/rooms/">Аудитории</a>
+        <a class="nav-link" href="https://drive.google.com/drive/folders/1Gn8OEzbtxFBusuCnPCTBjQoK1AWKiVN2" target="_blank" rel="noreferrer">Google Drive</a>
+        <a class="nav-link" href="https://www.vsau.ru/" target="_blank" rel="noreferrer">Сайт ВГАУ</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div>ФГБОУ ВО Воронежский ГАУ</div>
+        <div>ул. Мичурина, 1</div>
+      </div>
+    </aside>
+
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Расписание занятий очной формы обучения</p>
+          <h1>Воронежский государственный аграрный университет</h1>
+        </div>
+        <button class="icon-button" id="refreshBtn" type="button" title="Обновить данные">
+          <span aria-hidden="true">↻</span>
+        </button>
+      </header>
+
+      <section class="toolbar">
+        <label class="search">
+          <span>Поиск</span>
+          <input id="searchInput" type="search" placeholder="Факультет, группа, файл или преподаватель">
+        </label>
+        <div class="status" id="status">Загрузка структуры расписания...</div>
+      </section>
+
+      <section class="layout">
+        <aside class="panel tree-panel">
+          <div class="panel-title">Разделы</div>
+          <div id="tree" class="tree"></div>
+        </aside>
+
+        <section class="panel schedule-panel">
+          <div id="emptyState" class="empty-state">
+            <strong>Выберите файл расписания</strong>
+            <span>Слева появятся факультеты, семестры и папки из Google Drive.</span>
+          </div>
+
+          <div id="fileView" class="file-view hidden">
+            <div class="file-head">
+              <div>
+                <p class="eyebrow" id="fileMeta"></p>
+                <h2 id="fileTitle"></h2>
+              </div>
+              <div class="file-actions">
+                <button class="button" id="reloadFileBtn" type="button">Обновить файл</button>
+                <a class="button ghost" id="openDriveLink" target="_blank" rel="noreferrer">Открыть в Drive</a>
+              </div>
+            </div>
+
+            <div id="weekControls" class="week-controls hidden"></div>
+            <div id="sheetTabs" class="tabs"></div>
+            <div id="scheduleContent" class="schedule-content"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/students/app.js?v=20260602-cleanlabels"></script>
+  </body>
+</html>
