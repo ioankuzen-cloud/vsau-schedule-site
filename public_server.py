@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import mimetypes
 import os
 import re
 import sys
 import threading
+import time
 import urllib.error
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -39,6 +41,11 @@ SITES = {
 ROUTE_RE = re.compile(r"/(students|teachers|rooms)(/.*)?")
 SCHEDULE_RE = re.compile(r"/api/schedule/([^/]+)")
 FILE_RE = re.compile(r"/api/file/([^/]+)")
+DEFAULT_AGGREGATE_QUERY = {"semester": ["II семестр"], "section": ["Основное расписание"]}
+AGGREGATE_JOB_TTL_SECONDS = 12 * 60 * 60
+
+aggregate_jobs: dict[str, dict[str, Any]] = {}
+aggregate_lock = threading.Lock()
 
 
 def load_module(name: str, path: Path) -> ModuleType:
@@ -69,6 +76,81 @@ def patch_api_payload(payload: Any, site_key: str) -> Any:
     if isinstance(payload, list):
         return [patch_api_payload(item, site_key) for item in payload]
     return payload
+
+
+def aggregate_module_for_site(site_key: str) -> tuple[str, ModuleType]:
+    # The teacher and room pages use the same parsed lesson data. Sharing one
+    # aggregate job prevents Render Free from parsing the same 106 files twice.
+    aggregate_site = "teachers" if site_key in {"teachers", "rooms"} else site_key
+    module: ModuleType = SITES[aggregate_site]["loaded"]  # type: ignore[assignment]
+    return aggregate_site, module
+
+
+def aggregate_job_key(site_key: str, query: dict[str, list[str]]) -> str:
+    relevant = {
+        key: query.get(key, [""])
+        for key in ("faculty", "semester", "section", "refreshTree", "refreshFiles")
+    }
+    payload = {"site": site_key, "query": relevant}
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def aggregate_status_payload(job: dict[str, Any]) -> dict[str, Any]:
+    elapsed = max(0, int(time.time() - float(job.get("startedAt", time.time()))))
+    return {
+        "pending": True,
+        "status": "running",
+        "startedAt": job.get("startedAt"),
+        "elapsedSeconds": elapsed,
+        "message": "Расписание собирается на сервере. Страница обновит результат автоматически.",
+    }
+
+
+def run_aggregate_job(job_key: str, module: ModuleType, query: dict[str, list[str]]) -> None:
+    try:
+        payload = module.aggregate_lessons(query)
+        with aggregate_lock:
+            aggregate_jobs[job_key] = {
+                "status": "done",
+                "payload": payload,
+                "startedAt": aggregate_jobs.get(job_key, {}).get("startedAt", time.time()),
+                "finishedAt": time.time(),
+            }
+    except Exception as exc:
+        with aggregate_lock:
+            aggregate_jobs[job_key] = {
+                "status": "error",
+                "error": str(exc),
+                "startedAt": aggregate_jobs.get(job_key, {}).get("startedAt", time.time()),
+                "finishedAt": time.time(),
+            }
+
+
+def aggregate_async(site_key: str, query: dict[str, list[str]]) -> tuple[dict[str, Any], int]:
+    aggregate_site, module = aggregate_module_for_site(site_key)
+    job_key = aggregate_job_key(aggregate_site, query)
+    now = time.time()
+
+    with aggregate_lock:
+        job = aggregate_jobs.get(job_key)
+        if job and job.get("status") == "done":
+            finished_at = float(job.get("finishedAt", now))
+            if now - finished_at < AGGREGATE_JOB_TTL_SECONDS:
+                return job["payload"], 200
+            aggregate_jobs.pop(job_key, None)
+            job = None
+        if job and job.get("status") == "error":
+            aggregate_jobs.pop(job_key, None)
+            job = None
+        if job and job.get("status") == "running":
+            return aggregate_status_payload(job), 202
+
+        query_copy = {key: list(value) for key, value in query.items()}
+        job = {"status": "running", "startedAt": now}
+        aggregate_jobs[job_key] = job
+        thread = threading.Thread(target=run_aggregate_job, args=(job_key, module, query_copy), daemon=True)
+        thread.start()
+        return aggregate_status_payload(job), 202
 
 
 class PublicHandler(BaseHTTPRequestHandler):
@@ -157,8 +239,8 @@ class PublicHandler(BaseHTTPRequestHandler):
                 return
 
             if site_path == "/api/aggregate" and hasattr(module, "aggregate_lessons"):
-                payload = module.aggregate_lessons(query)
-                self.send_json(patch_api_payload(payload, site_key))
+                payload, status = aggregate_async(site_key, query)
+                self.send_json(patch_api_payload(payload, site_key), status=status)
                 return
 
             schedule_match = SCHEDULE_RE.fullmatch(site_path)
@@ -203,10 +285,15 @@ def start_background_refresh() -> None:
             threading.Thread(target=refresh, daemon=True).start()
 
 
+def start_default_aggregate_warmup() -> None:
+    aggregate_async("teachers", DEFAULT_AGGREGATE_QUERY)
+
+
 def main() -> None:
     port = int(os.environ.get("PORT") or (sys.argv[1] if len(sys.argv) > 1 else 8000))
     host = os.environ.get("HOST", "0.0.0.0")
     start_background_refresh()
+    start_default_aggregate_warmup()
     server = ThreadingHTTPServer((host, port), PublicHandler)
     print(f"VSAU public schedule site: http://{host}:{port}", flush=True)
     server.serve_forever()

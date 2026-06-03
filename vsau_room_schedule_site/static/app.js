@@ -9,6 +9,7 @@ const state = {
     semester: "II семестр",
     section: "Основное расписание",
   },
+  aggregateTimer: null,
 };
 
 const API_BASE = "/rooms";
@@ -103,18 +104,29 @@ async function loadTree(force = false) {
   els.status.textContent = "Нажмите «Собрать расписание», чтобы получить список аудиторий.";
 }
 
-async function loadAggregate() {
+function pendingMessage(payload, filesCount) {
+  const elapsed = Number(payload.elapsedSeconds || 0);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const elapsedText = elapsed > 0 ? ` Идет уже ${minutes}:${String(seconds).padStart(2, "0")}.` : "";
+  return `Сервер собирает ${filesCount} файлов в фоне.${elapsedText} Результат появится автоматически.`;
+}
+
+async function loadAggregate(isPolling = false) {
   const files = filesForFilters();
   if (!files.length) {
     els.status.textContent = "По выбранным фильтрам нет файлов расписания.";
     return;
   }
 
-  state.data = null;
-  state.selected = "";
-  renderEntities();
-  els.scheduleTitle.textContent = "Собираю расписание...";
-  els.scheduleContent.innerHTML = `<div class="notice">Разбираю ${files.length} файлов. Это может занять несколько секунд.</div>`;
+  if (!isPolling) {
+    window.clearTimeout(state.aggregateTimer);
+    state.data = null;
+    state.selected = "";
+    renderEntities();
+    els.scheduleTitle.textContent = "Собираю расписание...";
+    els.scheduleContent.innerHTML = `<div class="notice">Разбираю ${files.length} файлов. На публичном сервере первая сборка может занять несколько минут.</div>`;
+  }
 
   const params = new URLSearchParams({
     semester: state.filters.semester,
@@ -122,8 +134,17 @@ async function loadAggregate() {
   });
   const response = await fetch(apiUrl(`/api/aggregate?${params.toString()}`));
   const payload = await response.json();
+  if (payload.pending) {
+    const message = pendingMessage(payload, files.length);
+    els.status.textContent = message;
+    els.scheduleTitle.textContent = "Собираю расписание...";
+    els.scheduleContent.innerHTML = `<div class="notice">${escapeHtml(message)}</div>`;
+    state.aggregateTimer = window.setTimeout(() => loadAggregate(true).catch(showError), 8000);
+    return;
+  }
   if (!response.ok) throw new Error(payload.error || "Не удалось собрать расписание");
 
+  window.clearTimeout(state.aggregateTimer);
   state.data = payload;
   els.status.textContent = `Файлов: ${payload.files.length}. Занятий: ${payload.lessons.length}. Аудиторий: ${payload.rooms.length}.`;
   renderEntities();
@@ -284,21 +305,26 @@ function renderLesson(lesson) {
   `;
 }
 
+function showError(error) {
+  window.clearTimeout(state.aggregateTimer);
+  els.status.textContent = error.message;
+  els.scheduleContent.innerHTML = `<div class="notice">${escapeHtml(error.message)}</div>`;
+}
+
 els.semester.addEventListener("change", () => {
+  window.clearTimeout(state.aggregateTimer);
   state.filters.semester = els.semester.value;
   state.filters.section = "Основное расписание";
   renderFilters();
 });
 
 els.section.addEventListener("change", () => {
+  window.clearTimeout(state.aggregateTimer);
   state.filters.section = els.section.value;
 });
 
 els.load.addEventListener("click", () => {
-  loadAggregate().catch((error) => {
-    els.status.textContent = error.message;
-    els.scheduleContent.innerHTML = `<div class="notice">${escapeHtml(error.message)}</div>`;
-  });
+  loadAggregate().catch(showError);
 });
 
 els.refresh.addEventListener("click", () => {
