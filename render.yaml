@@ -1,7 +1,8 @@
 services:
   - type: web
     name: vsau-schedule
-    env: python
+    runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python public_server.py
     autoDeploy: false
