@@ -240,6 +240,7 @@ function renderTree() {
     els.tree.innerHTML = "";
     return;
   }
+  document.body.classList.toggle("schedule-open", Boolean(state.selectedFile));
 
   const faculties = unique(filesForFilterStep("faculty").map((file) => pathParts(file)[0]));
   const semesters = unique(filesForFilterStep("semester").map((file) => pathParts(file)[1]));
