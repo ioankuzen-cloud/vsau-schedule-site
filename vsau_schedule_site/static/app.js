@@ -262,20 +262,8 @@ function renderTree() {
   const files = hasActiveFilter ? visibleFiles() : [];
   const countText = hasActiveFilter ? `${files.length} файлов` : "Выберите факультет или начните поиск";
 
-  const filterSummary = [
-    state.filters.faculty,
-    state.filters.semester,
-    state.filters.section,
-  ].filter(Boolean).join(" · ") || "Все факультеты, семестры и разделы";
-  const filterOpen = state.filters.faculty || state.filters.semester || state.filters.section ? " open" : "";
-
   els.tree.innerHTML = `
-    <details class="filters-shell"${filterOpen}>
-      <summary>
-        <span>Фильтры</span>
-        <strong>${escapeHtml(filterSummary)}</strong>
-      </summary>
-      <div class="filters">
+    <div class="filters">
       <label class="filter-control">
         <span>Факультет</span>
         <select data-filter="faculty">
@@ -295,8 +283,7 @@ function renderTree() {
         </select>
       </label>
       <button class="reset-filters" type="button">Сбросить</button>
-      </div>
-    </details>
+    </div>
 
     <div class="file-count">${escapeHtml(countText)}</div>
     <div class="file-list">
