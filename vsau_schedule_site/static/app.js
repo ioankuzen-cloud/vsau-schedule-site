@@ -6,6 +6,7 @@ const state = {
   workbook: null,
   query: "",
   weekMode: "current",
+  sectionsCollapsed: localStorage.getItem("studentSectionsCollapsed") === "1",
   filters: {
     faculty: "",
     semester: "",
@@ -17,6 +18,7 @@ const els = {
   tree: document.querySelector("#tree"),
   status: document.querySelector("#status"),
   search: document.querySelector("#searchInput"),
+  sectionsToggle: document.querySelector("#sectionsToggle"),
   refresh: document.querySelector("#refreshBtn"),
   empty: document.querySelector("#emptyState"),
   fileView: document.querySelector("#fileView"),
@@ -46,6 +48,15 @@ function apiUrl(path) {
 
 function setStatus(text) {
   els.status.textContent = text;
+}
+
+function updateSectionsCollapsed() {
+  document.body.classList.toggle("sections-collapsed", state.sectionsCollapsed);
+  if (els.sectionsToggle) {
+    els.sectionsToggle.textContent = state.sectionsCollapsed ? "Показать разделы" : "Скрыть разделы";
+    els.sectionsToggle.setAttribute("aria-expanded", String(!state.sectionsCollapsed));
+  }
+  localStorage.setItem("studentSectionsCollapsed", state.sectionsCollapsed ? "1" : "0");
 }
 
 function escapeHtml(value) {
@@ -852,6 +863,11 @@ els.search.addEventListener("input", () => {
   if (state.workbook) renderWorkbook();
 });
 
+els.sectionsToggle?.addEventListener("click", () => {
+  state.sectionsCollapsed = !state.sectionsCollapsed;
+  updateSectionsCollapsed();
+});
+
 els.refresh.addEventListener("click", async () => {
   try {
     await loadTree(true);
@@ -868,6 +884,8 @@ els.reloadFile.addEventListener("click", async () => {
     els.content.innerHTML = `<div class="notice">${escapeHtml(error.message)}</div>`;
   }
 });
+
+updateSectionsCollapsed();
 
 loadTree().catch((error) => {
   setStatus(error.message);
