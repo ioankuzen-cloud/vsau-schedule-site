@@ -56,6 +56,70 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+function transliterateLatinToCyrillic(value) {
+  const map = {
+    shch: "щ", yo: "е", zh: "ж", kh: "х", ts: "ц", ch: "ч", sh: "ш", yu: "ю", ya: "я",
+    a: "а", b: "б", c: "ц", d: "д", e: "е", f: "ф", g: "г", h: "х", i: "и", j: "й",
+    k: "к", l: "л", m: "м", n: "н", o: "о", p: "п", q: "к", r: "р", s: "с", t: "т",
+    u: "у", v: "в", w: "в", x: "кс", y: "ы", z: "з",
+  };
+  return String(value || "").toLowerCase().replace(/shch|yo|zh|kh|ts|ch|sh|yu|ya|[a-z]/g, (part) => map[part] || part);
+}
+
+function transliterateCyrillicToLatin(value) {
+  const map = {
+    а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
+    й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
+    у: "u", ф: "f", х: "h", ц: "c", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "",
+    э: "e", ю: "yu", я: "ya",
+  };
+  return String(value || "").toLowerCase().replace(/[а-яё]/g, (part) => map[part] ?? part);
+}
+
+function normalizeSearchValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replaceAll("ё", "е")
+    .replace(/[._()[\]{}№#"'`/\\|:;,+-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactSearchValue(value) {
+  return normalizeSearchValue(value).replace(/[^0-9a-zа-я]+/g, "");
+}
+
+function searchForms(value) {
+  const forms = new Set();
+  const source = String(value || "");
+  [source, transliterateLatinToCyrillic(source), transliterateCyrillicToLatin(source)].forEach((variant) => {
+    const normalized = normalizeSearchValue(variant);
+    const compact = compactSearchValue(variant);
+    if (normalized) forms.add(normalized);
+    if (compact) forms.add(compact);
+  });
+  return [...forms];
+}
+
+function matchesSearchText(text, query) {
+  const source = String(text || "");
+  const rawQuery = String(query || "").trim();
+  if (!rawQuery) return true;
+
+  const haystackForms = searchForms(source);
+  const queryForms = searchForms(rawQuery);
+  if (queryForms.some((queryForm) => haystackForms.some((haystackForm) => haystackForm.includes(queryForm)))) {
+    return true;
+  }
+
+  const tokens = normalizeSearchValue(rawQuery).split(" ").filter(Boolean);
+  return tokens.length > 1 && tokens.every((token) =>
+    searchForms(token).some((tokenForm) =>
+      haystackForms.some((haystackForm) => haystackForm.includes(tokenForm))
+    )
+  );
+}
+
 function flattenFiles(node, trail = []) {
   if (!node) return [];
   if (node.type === "file") {
@@ -130,9 +194,8 @@ function matchesSearch(file) {
   if (!state.query) return true;
   const haystack = [file.title, readableFileTitle(file), file.modified, file.extension, ...(file.trail || [])]
     .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(state.query.toLowerCase());
+    .join(" ");
+  return matchesSearchText(haystack, state.query);
 }
 
 function pathParts(file) {
@@ -187,8 +250,20 @@ function renderTree() {
   const files = hasActiveFilter ? visibleFiles() : [];
   const countText = hasActiveFilter ? `${files.length} файлов` : "Выберите факультет или начните поиск";
 
+  const filterSummary = [
+    state.filters.faculty,
+    state.filters.semester,
+    state.filters.section,
+  ].filter(Boolean).join(" · ") || "Все факультеты, семестры и разделы";
+  const filterOpen = state.filters.faculty || state.filters.semester || state.filters.section ? " open" : "";
+
   els.tree.innerHTML = `
-    <div class="filters">
+    <details class="filters-shell"${filterOpen}>
+      <summary>
+        <span>Фильтры</span>
+        <strong>${escapeHtml(filterSummary)}</strong>
+      </summary>
+      <div class="filters">
       <label class="filter-control">
         <span>Факультет</span>
         <select data-filter="faculty">
@@ -208,7 +283,8 @@ function renderTree() {
         </select>
       </label>
       <button class="reset-filters" type="button">Сбросить</button>
-    </div>
+      </div>
+    </details>
 
     <div class="file-count">${escapeHtml(countText)}</div>
     <div class="file-list">
@@ -467,7 +543,7 @@ function styleFor(cell) {
 }
 
 function renderSheet(sheet) {
-  const query = state.query.trim().toLowerCase();
+  const query = state.query.trim();
   const rows = trimSheetRows(sheet.rows || []);
   if (!rows.length) {
     els.content.innerHTML = '<div class="notice">Лист пуст.</div>';
@@ -494,7 +570,7 @@ function renderSheet(sheet) {
       const cells = row
         .map((cell) => {
           const value = cell.value || "";
-          const isMatch = query && value.toLowerCase().includes(query);
+          const isMatch = query && matchesSearchText(value, query);
           const classes = [
             value ? "has-value" : "",
             isMatch ? "match" : "",
@@ -634,7 +710,8 @@ function renderScheduleCards(model, query) {
       .filter((slot) => slot.lessons.length)
       .map((slot) => {
       const lessons = slot.lessons.map((lesson) => {
-        const match = query && lesson.raw.toLowerCase().includes(query);
+        const searchableLesson = [lesson.groups, lesson.raw, lesson.parts.subject, lesson.parts.teacher, lesson.parts.place].join(" ");
+        const match = query && matchesSearchText(searchableLesson, query);
         return `
           <article class="lesson-card${match ? " match" : ""}">
             <div class="lesson-topline">

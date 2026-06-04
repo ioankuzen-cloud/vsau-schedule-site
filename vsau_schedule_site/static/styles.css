@@ -210,8 +210,8 @@ h2 {
 .layout {
   display: grid;
   flex: 1;
-  gap: 18px;
-  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 14px;
+  grid-template-columns: minmax(270px, 320px) minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -226,14 +226,14 @@ h2 {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 16px;
+  padding: 12px;
 }
 
 .panel-title {
   color: #5b626a;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .tree {
@@ -243,21 +243,73 @@ h2 {
   min-height: 0;
 }
 
-.filters {
+.filters-shell {
   border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.filters-shell summary {
+  align-items: center;
+  background: #f8fbfd;
+  border: 1px solid #dce6ed;
+  border-radius: 7px;
+  cursor: pointer;
   display: grid;
-  gap: 10px;
-  padding-bottom: 14px;
+  gap: 2px;
+  grid-template-columns: minmax(64px, auto) minmax(0, 1fr);
+  list-style: none;
+  min-height: 42px;
+  padding: 7px 34px 7px 10px;
+  position: relative;
+}
+
+.filters-shell summary::-webkit-details-marker {
+  display: none;
+}
+
+.filters-shell summary::after {
+  color: var(--main-dark);
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  transition: transform 0.15s;
+}
+
+.filters-shell[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.filters-shell summary span {
+  color: #34434d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filters-shell summary strong {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filters {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
 }
 
 .filter-control {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .filter-control span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .filter-control select {
@@ -267,7 +319,8 @@ h2 {
   border-radius: 7px;
   color: #27323a;
   cursor: pointer;
-  min-height: 40px;
+  font-size: 13px;
+  min-height: 36px;
   outline: 0;
   padding: 0 34px 0 12px;
   width: 100%;
@@ -283,7 +336,7 @@ h2 {
   pointer-events: none;
   position: absolute;
   right: 12px;
-  top: 31px;
+  top: 27px;
 }
 
 .reset-filters {
@@ -292,7 +345,7 @@ h2 {
   border-radius: 7px;
   color: #34434d;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 34px;
 }
 
 .reset-filters:hover {
@@ -302,14 +355,14 @@ h2 {
 .file-count {
   color: var(--muted);
   font-size: 12px;
-  padding: 12px 0 8px;
+  padding: 9px 0 7px;
 }
 
 .file-list {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   min-height: 0;
   overflow: auto;
   padding-right: 2px;
@@ -323,7 +376,7 @@ h2 {
   cursor: pointer;
   display: grid;
   gap: 5px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   position: relative;
   text-align: left;
   width: 100%;
@@ -825,6 +878,14 @@ h2 {
   .layout,
   .toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .layout {
+    gap: 12px;
+  }
+
+  .tree-panel {
+    max-height: 42vh;
   }
 
   .status {
