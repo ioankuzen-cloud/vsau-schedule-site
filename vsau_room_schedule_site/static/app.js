@@ -9,6 +9,7 @@ const state = {
     semester: "II семестр",
     section: "Основное расписание",
   },
+  indexCollapsed: localStorage.getItem("roomIndexCollapsed") === "1",
   aggregateTimer: null,
 };
 
@@ -25,6 +26,7 @@ if (window.location.protocol === "file:") {
 const els = {
   semester: document.querySelector("#semesterSelect"),
   section: document.querySelector("#sectionSelect"),
+  indexToggle: document.querySelector("#indexToggle"),
   load: document.querySelector("#loadBtn"),
   refresh: document.querySelector("#refreshTreeBtn"),
   search: document.querySelector("#searchInput"),
@@ -41,6 +43,15 @@ function escapeHtml(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function updateIndexCollapsed() {
+  document.body.classList.toggle("index-collapsed", state.indexCollapsed);
+  if (els.indexToggle) {
+    els.indexToggle.textContent = state.indexCollapsed ? "Показать список" : "Скрыть список";
+    els.indexToggle.setAttribute("aria-expanded", String(!state.indexCollapsed));
+  }
+  localStorage.setItem("roomIndexCollapsed", state.indexCollapsed ? "1" : "0");
 }
 
 function unique(values) {
@@ -339,6 +350,11 @@ els.search.addEventListener("input", () => {
   renderSchedule();
 });
 
+els.indexToggle?.addEventListener("click", () => {
+  state.indexCollapsed = !state.indexCollapsed;
+  updateIndexCollapsed();
+});
+
 document.querySelectorAll("[data-week]").forEach((button) => {
   button.addEventListener("click", () => {
     state.week = button.dataset.week;
@@ -347,6 +363,8 @@ document.querySelectorAll("[data-week]").forEach((button) => {
     renderSchedule();
   });
 });
+
+updateIndexCollapsed();
 
 loadTree().catch((error) => {
   els.status.textContent = error.message;

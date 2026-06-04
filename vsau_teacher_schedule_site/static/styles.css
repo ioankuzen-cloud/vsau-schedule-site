@@ -177,8 +177,31 @@ h2 {
 .controls {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(160px, 0.8fr) minmax(220px, 1fr) auto;
+  grid-template-columns: auto minmax(160px, 0.8fr) minmax(220px, 1fr) auto;
   margin-bottom: 18px;
+}
+
+.index-toggle {
+  background: #edf3f7;
+  border: 1px solid #dce6ed;
+  border-radius: 7px;
+  color: #26323a;
+  cursor: pointer;
+  font-weight: 500;
+  min-height: 42px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.index-toggle:hover {
+  background: var(--soft-blue);
+  border-color: #b7daee;
+}
+
+body.index-collapsed .index-toggle {
+  background: var(--main-color);
+  border-color: var(--main-color);
+  color: #ffffff;
 }
 
 .control,
@@ -212,6 +235,14 @@ h2 {
   gap: 18px;
   grid-template-columns: 360px minmax(0, 1fr);
   min-height: 0;
+}
+
+body.index-collapsed .workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.index-collapsed .index-panel {
+  display: none;
 }
 
 .panel {
@@ -442,6 +473,10 @@ h2 {
   .controls,
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .index-toggle {
+    width: 100%;
   }
 
   .lesson-row {

@@ -38,8 +38,8 @@ input {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 18px 12px 16px;
-  width: 154px;
+  padding: 34px 26px 24px;
+  width: 292px;
 }
 
 .brand {
@@ -48,29 +48,27 @@ input {
   border-radius: 8px;
   display: flex;
   justify-content: center;
-  min-height: 58px;
-  padding: 8px;
+  min-height: 92px;
+  padding: 18px;
 }
 
 .brand img {
-  max-width: 116px;
+  max-width: 210px;
   width: 100%;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 18px;
+  gap: 8px;
+  margin-top: 34px;
 }
 
 .nav-link {
   border-radius: 7px;
   color: #fff;
-  font-size: 13px;
-  line-height: 1.2;
   opacity: 0.72;
-  padding: 10px 9px;
+  padding: 12px 14px;
   text-decoration: none;
 }
 
@@ -83,7 +81,6 @@ input {
 .sidebar-footer {
   border-top: 1px solid #ffffff38;
   color: #ffffffc9;
-  display: none;
   font-size: 12px;
   line-height: 1.45;
   margin-top: auto;
@@ -95,7 +92,7 @@ input {
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  padding: 18px;
+  padding: 28px;
 }
 
 .topbar {
@@ -103,7 +100,7 @@ input {
   display: flex;
   gap: 18px;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
 .eyebrow {
@@ -115,7 +112,7 @@ input {
 
 h1 {
   color: #4d545a;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 500;
   line-height: 1.2;
   margin: 0;
@@ -178,9 +175,9 @@ h2 {
 .toolbar {
   align-items: center;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: auto minmax(260px, 520px) 1fr;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
 .sections-toggle {
@@ -236,13 +233,13 @@ body.sections-collapsed .sections-toggle {
 .layout {
   display: grid;
   flex: 1;
-  gap: 12px;
-  grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
+  gap: 18px;
+  grid-template-columns: 360px minmax(0, 1fr);
   min-height: 0;
 }
 
 body.schedule-open .layout {
-  grid-template-columns: minmax(200px, 238px) minmax(0, 1fr);
+  grid-template-columns: 360px minmax(0, 1fr);
 }
 
 body.sections-collapsed .layout,
@@ -265,7 +262,7 @@ body.sections-collapsed .tree-panel {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 10px;
+  padding: 16px;
 }
 
 .panel-title {
@@ -421,28 +418,6 @@ body.sections-collapsed .tree-panel {
   width: 100%;
 }
 
-body.schedule-open .file-row {
-  gap: 3px;
-  padding: 8px 9px;
-}
-
-body.schedule-open .file-original,
-body.schedule-open .file-path {
-  display: none;
-}
-
-body.schedule-open .file-name {
-  font-size: 14px;
-  line-height: 1.2;
-  padding-right: 44px;
-}
-
-body.schedule-open .file-date {
-  font-size: 10px;
-  right: 9px;
-  top: 10px;
-}
-
 .file-row:hover,
 .file-row.active {
   background: var(--soft-blue);
@@ -532,7 +507,7 @@ body.schedule-open .file-date {
   display: flex;
   gap: 18px;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 18px;
 }
 
 .file-actions {
@@ -562,7 +537,7 @@ body.schedule-open .file-date {
   flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
-  padding: 10px 18px;
+  padding: 12px 18px;
 }
 
 .week-controls.hidden {
@@ -628,7 +603,7 @@ body.schedule-open .file-date {
 .schedule-content {
   flex: 1;
   overflow: auto;
-  padding: 14px 18px 18px;
+  padding: 18px;
 }
 
 .schedule-view {
