@@ -851,7 +851,7 @@ function daySortIndex(day) {
 }
 
 function timeToMinutes(time) {
-  const match = String(time || "").match(/(\d{1,2}):(\d{2})/);
+  const match = String(time || "").match(/(\d{1,2})[:.](\d{2})/);
   return match ? Number(match[1]) * 60 + Number(match[2]) : 9999;
 }
 
@@ -877,7 +877,17 @@ function normalizeFormatKey(value) {
     .trim();
 }
 
-function lessonSubjectView(subject) {
+function isVeterinarySchedule(model) {
+  const haystack = [
+    model?.title,
+    state.selectedFile?.title,
+    ...(state.selectedFile?.trail || []),
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  return /(ветерин|животновод|всэ|вет\d|зо\d)/i.test(haystack);
+}
+
+function lessonSubjectView(subject, compactFormats = false) {
   const value = String(subject || "").trim();
   const match = value.match(/^(.*?)[\s\-–—]+([0-9a-zа-яё.\s]+)$/i);
   if (!match) return { title: value, format: "" };
@@ -887,7 +897,8 @@ function lessonSubjectView(subject) {
   if (!format) return { title: value, format: "" };
 
   const title = match[1].trim();
-  return { title: title || value, format: format.title };
+  const formatTitle = compactFormats && format.title === "Лабораторная работа" ? "Лаб" : format.title;
+  return { title: title || value, format: formatTitle };
 }
 
 function lessonParts(raw) {
@@ -910,6 +921,7 @@ function renderScheduleCards(model, query) {
   const activeWeek = model.hasWeekSplit ? selectedWeekNumber() : null;
   const columns = Array.isArray(model.columns) ? model.columns : [];
   const hasColumnLayout = columns.length >= 3;
+  const compactFormats = isVeterinarySchedule(model);
   const columnStyle = hasColumnLayout ? `style="--schedule-columns: ${columns.length}"` : "";
   const days = model.days.map((day) => {
     const slots = mergeWeekSlots(day.slots)
@@ -918,7 +930,7 @@ function renderScheduleCards(model, query) {
       .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time))
       .map((slot) => {
       const lessons = slot.lessons.map((lesson) => {
-        const subjectView = lessonSubjectView(lesson.parts.subject);
+        const subjectView = lessonSubjectView(lesson.parts.subject, compactFormats);
         const searchableLesson = [lesson.groups, lesson.raw, lesson.parts.subject, lesson.parts.teacher, lesson.parts.place].join(" ");
         const match = query && matchesSearchText(searchableLesson, query);
         const classes = ["lesson-card", match ? "match" : "", lesson.combined ? "combined" : ""].filter(Boolean).join(" ");
