@@ -18,6 +18,7 @@ from typing import Any
 
 
 ROOT_DIR = Path(__file__).resolve().parent
+PUBLIC_ORIGIN = "https://vsau-schedule.ru"
 
 
 SITES = {
@@ -43,6 +44,18 @@ SCHEDULE_RE = re.compile(r"/api/schedule/([^/]+)")
 FILE_RE = re.compile(r"/api/file/([^/]+)")
 DEFAULT_AGGREGATE_QUERY = {"semester": ["II семестр"], "section": ["Основное расписание"]}
 AGGREGATE_JOB_TTL_SECONDS = 12 * 60 * 60
+ROBOTS_TXT = f"""User-agent: *
+Allow: /
+
+Sitemap: {PUBLIC_ORIGIN}/sitemap.xml
+"""
+SITEMAP_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{PUBLIC_ORIGIN}/students/</loc><priority>1.0</priority></url>
+  <url><loc>{PUBLIC_ORIGIN}/teachers/</loc><priority>0.8</priority></url>
+  <url><loc>{PUBLIC_ORIGIN}/rooms/</loc><priority>0.8</priority></url>
+</urlset>
+"""
 
 aggregate_jobs: dict[str, dict[str, Any]] = {}
 aggregate_lock = threading.Lock()
@@ -220,6 +233,14 @@ class PublicHandler(BaseHTTPRequestHandler):
 
         if path == "/health":
             self.send_json({"ok": True, "sites": list(SITES.keys())})
+            return
+
+        if path == "/robots.txt":
+            self.send_text(ROBOTS_TXT, "text/plain; charset=utf-8")
+            return
+
+        if path == "/sitemap.xml":
+            self.send_text(SITEMAP_XML, "application/xml; charset=utf-8")
             return
 
         site_match = ROUTE_RE.fullmatch(path)
