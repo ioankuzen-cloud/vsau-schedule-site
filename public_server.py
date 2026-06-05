@@ -157,6 +157,10 @@ class PublicHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:
         return
 
+    def write_body(self, body: bytes) -> None:
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
     def send_json(self, payload: Any, status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -164,7 +168,7 @@ class PublicHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        self.write_body(body)
 
     def send_text(self, text: str, content_type: str, status: int = 200) -> None:
         body = text.encode("utf-8")
@@ -173,7 +177,7 @@ class PublicHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "private, max-age=60")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        self.write_body(body)
 
     def send_file(self, path: Path) -> None:
         if not path.exists() or not path.is_file():
@@ -193,12 +197,16 @@ class PublicHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "private, max-age=300")
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+        self.write_body(data)
 
     def redirect(self, target: str) -> None:
         self.send_response(302)
         self.send_header("Location", target)
+        self.send_header("Content-Length", "0")
         self.end_headers()
+
+    def do_HEAD(self) -> None:
+        self.do_GET()
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
