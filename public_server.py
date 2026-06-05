@@ -18,7 +18,7 @@ from typing import Any
 
 
 ROOT_DIR = Path(__file__).resolve().parent
-PUBLIC_ORIGIN = "https://vsau-schedule.ru"
+PUBLIC_ORIGIN = "https://www.vsau-schedule.ru"
 
 
 SITES = {
