@@ -101,6 +101,41 @@ function renderGroupBadges(groups) {
   `;
 }
 
+const LESSON_FORMATS = [
+  { keys: ["лекц", "лек", "лекция", "лекционное занятие"], title: "Лекция" },
+  { keys: ["лаб", "лабор", "лабораторная", "лабораторные", "лабораторное занятие"], title: "Лабораторная работа" },
+  { keys: ["сем", "семинар", "семинарское занятие"], title: "Семинар" },
+  { keys: ["пр", "пз", "практ", "практика", "практическое", "практическое занятие"], title: "Практическое занятие" },
+  { keys: ["конс", "консультация"], title: "Консультация" },
+  { keys: ["экз", "экзамен"], title: "Экзамен" },
+  { keys: ["зач", "зачет", "зачёт"], title: "Зачёт" },
+  { keys: ["кр"], title: "Курсовая работа" },
+  { keys: ["кп"], title: "Курсовой проект" },
+  { keys: ["колл", "коллоквиум"], title: "Коллоквиум" },
+  { keys: ["курат час", "кураторский час"], title: "Кураторский час" },
+];
+
+function normalizeFormatKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[.]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function lessonSubjectView(subject) {
+  const value = String(subject || "").trim();
+  const match = value.match(/^(.*?)[\s\-–—]+([0-9a-zа-яё.\s]+)$/i);
+  if (!match) return { title: value, format: "" };
+
+  const key = normalizeFormatKey(match[2]);
+  const format = LESSON_FORMATS.find((item) => item.keys.some((candidate) => key === candidate));
+  if (!format) return { title: value, format: "" };
+
+  const title = match[1].trim();
+  return { title: title || value, format: format.title };
+}
+
 function updateIndexCollapsed() {
   document.body.classList.toggle("index-collapsed", state.indexCollapsed);
   if (els.indexToggle) {
@@ -363,6 +398,7 @@ function renderSchedule() {
 function renderLesson(lesson) {
   const rooms = lesson.rooms.join(", ");
   const groups = splitGroupLabels(lesson.groups);
+  const subjectView = lessonSubjectView(lesson.subject);
   return `
     <article class="lesson-row">
       <div class="time">${escapeHtml(lesson.time)}</div>
@@ -372,7 +408,10 @@ function renderLesson(lesson) {
           ${groups.length > 1 ? `<span class="combined-label">общая пара</span>` : ""}
           ${renderGroupBadges(groups)}
         </div>
-        <div class="subject">${escapeHtml(lesson.subject)}</div>
+        <div class="subject-line">
+          <div class="subject">${escapeHtml(subjectView.title)}</div>
+          ${subjectView.format ? `<span class="lesson-format">${escapeHtml(subjectView.format)}</span>` : ""}
+        </div>
         ${rooms ? `<div class="detail">${escapeHtml(rooms)}</div>` : ""}
         <div class="detail">${escapeHtml([lesson.faculty, lesson.fileTitle, lesson.section].filter(Boolean).join(" · "))}</div>
       </div>

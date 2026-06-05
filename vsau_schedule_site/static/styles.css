@@ -754,6 +754,25 @@ body.sections-collapsed .tree-panel {
   overflow-wrap: anywhere;
 }
 
+.subject-line {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.lesson-format {
+  background: #eef6f0;
+  border: 1px solid #cfe3d4;
+  border-radius: 999px;
+  color: #2f6b3d;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
 .lesson-teacher,
 .lesson-place {
   color: #59656f;
