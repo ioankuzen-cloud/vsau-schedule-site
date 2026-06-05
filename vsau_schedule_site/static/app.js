@@ -618,9 +618,9 @@ function buildScheduleModel(title, rows) {
   for (let col = 3; col <= maxCol; col += 1) {
     const labels = headerRows
       .map((row) => row.find((cell) => coversColumn(cell, col))?.value)
-      .map((value) => String(value || "").trim())
+      .flatMap((value) => extractHeaderGroupLabels(value))
       .filter(Boolean);
-    groupsByCol.set(col, labels.join(" / ") || `Колонка ${col}`);
+    groupsByCol.set(col, uniqueStrings(labels).join(" / ") || `Колонка ${col}`);
   }
 
   const days = [];
@@ -691,11 +691,65 @@ function coversColumn(cell, col) {
   return col >= cell.col && col < cell.col + (cell.colSpan || 1);
 }
 
+function uniqueStrings(items) {
+  const result = [];
+  items.forEach((item) => {
+    const value = String(item || "").replace(/\s+/g, " ").trim();
+    if (value && !result.includes(value)) result.push(value);
+  });
+  return result;
+}
+
+function extractHeaderGroupLabels(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return [];
+
+  const beforeLesson = text
+    .split(/\s\/?\s*(?:с|c)\s*\d{1,2}[.:]\d{2}/i)[0]
+    .replace(/\s+\/\s*$/g, "")
+    .trim();
+  const candidate = beforeLesson || text;
+
+  if (isCompactGroupLabel(candidate)) return [normalizeHeaderGroupLabel(candidate)];
+
+  const labels = [];
+  const re = /(^|[\s,;])([\p{L}]{1,10}[\p{L}0-9]*(?:[-–][\p{L}0-9]+)*)(?:\s*\/\s*([\p{L}0-9.-]+))?/giu;
+  let match;
+  while ((match = re.exec(candidate)) !== null) {
+    const group = String(match[2] || "").trim();
+    const subgroup = String(match[3] || "").trim();
+    if (!group || !/\d/.test(group)) continue;
+    const label = subgroup ? `${group} / ${subgroup}` : group;
+    if (isCompactGroupLabel(label)) labels.push(normalizeHeaderGroupLabel(label));
+  }
+
+  return uniqueStrings(labels);
+}
+
+function isCompactGroupLabel(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text || text.length > 34 || !/\d/.test(text)) return false;
+  if (/\d{1,2}[.:]\d{2}/.test(text)) return false;
+  if (/(расписан|заняти|семестр|факультет|направлен|специальн|уч\.?\s*г|лекц|лек|лаб|сем|практ|экз|зач)/i.test(text)) return false;
+  if ((text.match(/\//g) || []).length > 1) return false;
+  return true;
+}
+
+function normalizeHeaderGroupLabel(value) {
+  return String(value || "")
+    .replace(/\s*[-–]\s*/g, "-")
+    .replace(/\s*\/\s*/g, " / ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function groupLabelsForCell(cell, groupsByCol) {
   const labels = [];
   for (let col = cell.col; col < cell.col + (cell.colSpan || 1); col += 1) {
     const label = groupsByCol.get(col);
-    if (label && !labels.includes(label)) labels.push(label);
+    extractHeaderGroupLabels(label).forEach((item) => {
+      if (item && !labels.includes(item)) labels.push(item);
+    });
   }
   return labels;
 }
@@ -732,14 +786,20 @@ function groupedLabels(groups) {
 function renderGroupBadges(groups) {
   const items = groupedLabels(groups);
   if (!items.length) return "";
+  const visibleItems = items.slice(0, 12);
+  const hiddenCount = items.length - visibleItems.length;
+  const title = items
+    .map(({ group, subgroups }) => `${group}${subgroups.length ? ` / ${subgroups.join(", ")}` : ""}`)
+    .join(", ");
   return `
-    <div class="group-badges">
-      ${items.map(({ group, subgroups }) => `
+    <div class="group-badges" title="${escapeHtml(title)}">
+      ${visibleItems.map(({ group, subgroups }) => `
         <span class="group-chip">
           <span class="group-main">${escapeHtml(group)}</span>
           ${subgroups.length ? `<span class="subgroups">${escapeHtml(subgroups.join(", "))}</span>` : ""}
         </span>
       `).join("")}
+      ${hiddenCount > 0 ? `<span class="group-more">+${hiddenCount}</span>` : ""}
     </div>
   `;
 }
@@ -793,12 +853,19 @@ function lessonSubjectView(subject) {
 }
 
 function lessonParts(raw) {
-  const parts = raw.split(/\n+/).map((part) => part.trim()).filter(Boolean);
+  const parts = raw.split(/\n+/).map((part) => cleanLessonPart(part)).filter(Boolean);
   return {
     subject: parts[0] || raw,
     teacher: parts[1] || "",
     place: parts.slice(2).join("\n"),
   };
+}
+
+function cleanLessonPart(value) {
+  return String(value || "")
+    .replace(/^\s*(?:с|c)\s*\d{1,2}[.:]\d{2}\s+/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function renderScheduleCards(model, query) {

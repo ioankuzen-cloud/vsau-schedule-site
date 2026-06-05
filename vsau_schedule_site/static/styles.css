@@ -715,6 +715,10 @@ body.sections-collapsed .tree-panel {
   min-width: 0;
 }
 
+.lesson-card.combined .group-badges {
+  flex-basis: 100%;
+}
+
 .group-chip {
   align-items: stretch;
   background: #eef8fe;
@@ -727,6 +731,18 @@ body.sections-collapsed .tree-panel {
   line-height: 1;
   max-width: 100%;
   overflow: hidden;
+}
+
+.group-more {
+  background: #f3f7fa;
+  border: 1px solid #d7e3eb;
+  border-radius: 999px;
+  color: #4b5b66;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 8px;
 }
 
 .group-main {
