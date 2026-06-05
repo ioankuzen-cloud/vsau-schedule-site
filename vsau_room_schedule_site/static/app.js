@@ -45,6 +45,62 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+const DAY_ORDER = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"];
+
+function daySortIndex(day) {
+  const value = String(day || "").toLowerCase();
+  const index = DAY_ORDER.findIndex((name) => value.includes(name));
+  return index === -1 ? DAY_ORDER.length : index;
+}
+
+function timeToMinutes(time) {
+  const match = String(time || "").match(/(\d{1,2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : 9999;
+}
+
+function splitGroupLabels(groups) {
+  return String(groups || "")
+    .split(/\s*,\s*/)
+    .map((label) => label.trim())
+    .filter(Boolean);
+}
+
+function parseGroupLabel(label) {
+  const value = String(label || "").trim();
+  const match = value.match(/^(.+?)\s*\/\s*([0-9a-zа-яё.-]+)$/i);
+  if (!match) return { group: value, subgroup: "" };
+  return { group: match[1].trim(), subgroup: match[2].trim() };
+}
+
+function groupedLabels(groups) {
+  const grouped = new Map();
+  splitGroupLabels(groups).forEach((label) => {
+    const parsed = parseGroupLabel(label);
+    if (!parsed.group) return;
+    if (!grouped.has(parsed.group)) grouped.set(parsed.group, new Set());
+    if (parsed.subgroup) grouped.get(parsed.group).add(parsed.subgroup);
+  });
+  return [...grouped.entries()].map(([group, subgroups]) => ({
+    group,
+    subgroups: [...subgroups].sort((a, b) => a.localeCompare(b, "ru", { numeric: true })),
+  }));
+}
+
+function renderGroupBadges(groups) {
+  const items = groupedLabels(groups);
+  if (!items.length) return "";
+  return `
+    <div class="group-badges">
+      ${items.map(({ group, subgroups }) => `
+        <span class="group-chip">
+          <span class="group-main">${escapeHtml(group)}</span>
+          ${subgroups.length ? `<span class="subgroups">${escapeHtml(subgroups.join(", "))}</span>` : ""}
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
 function updateIndexCollapsed() {
   document.body.classList.toggle("index-collapsed", state.indexCollapsed);
   if (els.indexToggle) {
@@ -278,7 +334,11 @@ function renderSchedule() {
     return;
   }
 
-  const lessons = filteredLessons();
+  const lessons = filteredLessons().sort((a, b) =>
+    daySortIndex(a.day) - daySortIndex(b.day) ||
+    timeToMinutes(a.time) - timeToMinutes(b.time) ||
+    String(a.groups || "").localeCompare(String(b.groups || ""), "ru", { numeric: true })
+  );
   if (!lessons.length) {
     els.scheduleContent.innerHTML = `<div class="notice">Для выбранного фильтра занятий не найдено.</div>`;
     return;
@@ -290,7 +350,9 @@ function renderSchedule() {
     byDay.get(lesson.day).push(lesson);
   });
 
-  els.scheduleContent.innerHTML = [...byDay.entries()].map(([day, items]) => `
+  els.scheduleContent.innerHTML = [...byDay.entries()]
+    .sort((a, b) => daySortIndex(a[0]) - daySortIndex(b[0]))
+    .map(([day, items]) => `
     <section class="day-card">
       <h3>${escapeHtml(day)}</h3>
       ${items.map(renderLesson).join("")}
@@ -300,13 +362,15 @@ function renderSchedule() {
 
 function renderLesson(lesson) {
   const teachers = lesson.teachers.join(", ");
+  const groups = splitGroupLabels(lesson.groups);
   return `
     <article class="lesson-row">
       <div class="time">${escapeHtml(lesson.time)}</div>
       <div class="lesson-card">
         <div class="lesson-top">
           <span class="week ${lesson.week === 1 ? "one" : "two"}">${lesson.weekLabel}</span>
-          <span class="group">${escapeHtml(lesson.groups)}</span>
+          ${groups.length > 1 ? `<span class="combined-label">общая пара</span>` : ""}
+          ${renderGroupBadges(groups)}
         </div>
         <div class="subject">${escapeHtml(lesson.subject)}</div>
         ${teachers ? `<div class="detail">${escapeHtml(teachers)}</div>` : ""}

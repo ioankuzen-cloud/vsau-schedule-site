@@ -649,12 +649,19 @@ function buildScheduleModel(title, rows) {
     const lessonCells = row.filter((cell) => cell.col >= 3 && String(cell.value || "").trim());
     if (!time && !lessonCells.length) return;
 
-    const lessons = lessonCells.map((cell) => ({
-      groups: groupsForCell(cell, groupsByCol),
-      raw: String(cell.value || "").trim(),
-      parts: lessonParts(String(cell.value || "").trim()),
-      week,
-    }));
+    const lessons = lessonCells.map((cell) => {
+      const groupLabels = groupLabelsForCell(cell, groupsByCol);
+      const raw = String(cell.value || "").trim();
+      return {
+        groups: groupLabels.join(", "),
+        groupLabels,
+        groupSpan: cell.colSpan || 1,
+        combined: groupLabels.length > 1 || (cell.colSpan || 1) > 1,
+        raw,
+        parts: lessonParts(raw),
+        week,
+      };
+    });
 
     if (time || lessons.length) {
       currentDay.slots.push({ time: time || currentTime, week, lessons });
@@ -668,7 +675,8 @@ function buildScheduleModel(title, rows) {
     ),
     days: days
       .map((day) => ({ ...day, slots: day.slots.filter((slot) => slot.lessons.length) }))
-      .filter((day) => day.slots.length),
+      .filter((day) => day.slots.length)
+      .sort((a, b) => daySortIndex(a.name) - daySortIndex(b.name)),
   };
 }
 
@@ -683,13 +691,70 @@ function coversColumn(cell, col) {
   return col >= cell.col && col < cell.col + (cell.colSpan || 1);
 }
 
-function groupsForCell(cell, groupsByCol) {
+function groupLabelsForCell(cell, groupsByCol) {
   const labels = [];
   for (let col = cell.col; col < cell.col + (cell.colSpan || 1); col += 1) {
     const label = groupsByCol.get(col);
     if (label && !labels.includes(label)) labels.push(label);
   }
-  return labels.join(", ");
+  return labels;
+}
+
+function splitGroupLabels(groups) {
+  const source = Array.isArray(groups) ? groups.join(", ") : String(groups || "");
+  return source
+    .split(/\s*,\s*/)
+    .map((label) => label.trim())
+    .filter(Boolean);
+}
+
+function parseGroupLabel(label) {
+  const value = String(label || "").trim();
+  const match = value.match(/^(.+?)\s*\/\s*([0-9a-zа-яё.-]+)$/i);
+  if (!match) return { group: value, subgroup: "" };
+  return { group: match[1].trim(), subgroup: match[2].trim() };
+}
+
+function groupedLabels(groups) {
+  const grouped = new Map();
+  splitGroupLabels(groups).forEach((label) => {
+    const parsed = parseGroupLabel(label);
+    if (!parsed.group) return;
+    if (!grouped.has(parsed.group)) grouped.set(parsed.group, new Set());
+    if (parsed.subgroup) grouped.get(parsed.group).add(parsed.subgroup);
+  });
+  return [...grouped.entries()].map(([group, subgroups]) => ({
+    group,
+    subgroups: [...subgroups].sort((a, b) => a.localeCompare(b, "ru", { numeric: true })),
+  }));
+}
+
+function renderGroupBadges(groups) {
+  const items = groupedLabels(groups);
+  if (!items.length) return "";
+  return `
+    <div class="group-badges">
+      ${items.map(({ group, subgroups }) => `
+        <span class="group-chip">
+          <span class="group-main">${escapeHtml(group)}</span>
+          ${subgroups.length ? `<span class="subgroups">${escapeHtml(subgroups.join(", "))}</span>` : ""}
+        </span>
+      `).join("")}
+    </div>
+  `;
+}
+
+const DAY_ORDER = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"];
+
+function daySortIndex(day) {
+  const value = String(day || "").toLowerCase();
+  const index = DAY_ORDER.findIndex((name) => value.includes(name));
+  return index === -1 ? DAY_ORDER.length : index;
+}
+
+function timeToMinutes(time) {
+  const match = String(time || "").match(/(\d{1,2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : 9999;
 }
 
 function lessonParts(raw) {
@@ -707,17 +772,20 @@ function renderScheduleCards(model, query) {
     const slots = mergeWeekSlots(day.slots)
       .map((slot) => ({ ...slot, lessons: filterLessonsByWeek(slot.lessons, activeWeek) }))
       .filter((slot) => slot.lessons.length)
+      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time))
       .map((slot) => {
       const lessons = slot.lessons.map((lesson) => {
         const searchableLesson = [lesson.groups, lesson.raw, lesson.parts.subject, lesson.parts.teacher, lesson.parts.place].join(" ");
         const match = query && matchesSearchText(searchableLesson, query);
+        const classes = ["lesson-card", match ? "match" : "", lesson.combined ? "combined" : ""].filter(Boolean).join(" ");
         return `
-          <article class="lesson-card${match ? " match" : ""}">
+          <article class="${classes}">
             <div class="lesson-topline">
               <span class="lesson-week ${lesson.week === 1 ? "numerator" : "denominator"}">
                 ${lesson.week === 1 ? "числитель" : "знаменатель"}
               </span>
-              <span class="lesson-group">${escapeHtml(lesson.groups)}</span>
+              ${lesson.combined ? `<span class="combined-label">общая пара</span>` : ""}
+              ${renderGroupBadges(lesson.groupLabels || lesson.groups)}
             </div>
             <div class="lesson-subject">${escapeHtml(lesson.parts.subject)}</div>
             ${lesson.parts.teacher ? `<div class="lesson-teacher">${escapeHtml(lesson.parts.teacher)}</div>` : ""}
