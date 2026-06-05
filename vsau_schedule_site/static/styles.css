@@ -592,7 +592,7 @@ body.sections-collapsed .tree-panel {
   background: #ffffff;
   border: 1px solid #d8e3ea;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .day-card h3 {
@@ -638,6 +638,51 @@ body.sections-collapsed .tree-panel {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  min-width: 0;
+}
+
+.schedule-grid-head {
+  border-bottom: 1px solid #d8e3ea;
+  display: grid;
+  min-width: max(100%, calc(var(--schedule-columns) * 118px));
+  padding-left: 150px;
+}
+
+.grid-head-row {
+  display: grid;
+  grid-template-columns: repeat(var(--schedule-columns), minmax(118px, 1fr));
+}
+
+.grid-group-cell,
+.grid-subgroup-cell {
+  border-left: 1px solid #d8e3ea;
+  color: #25455a;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  padding: 8px 6px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-group-cell {
+  background: #eaf5fb;
+  font-size: 13px;
+}
+
+.grid-subgroup-cell {
+  background: #f8fbfd;
+  border-top: 1px solid #d8e3ea;
+  font-size: 12px;
+}
+
+.lesson-list.excel-layout {
+  grid-template-columns: repeat(var(--schedule-columns), minmax(118px, 1fr));
+  min-width: max(100%, calc(var(--schedule-columns) * 118px));
+}
+
+.lesson-list.excel-layout .lesson-card {
   min-width: 0;
 }
 

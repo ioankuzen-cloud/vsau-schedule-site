@@ -614,14 +614,8 @@ function buildScheduleModel(title, rows) {
     ...rows.flatMap((row) => row.map((cell) => cell.col + (cell.colSpan || 1) - 1))
   );
 
-  const groupsByCol = new Map();
-  for (let col = 3; col <= maxCol; col += 1) {
-    const labels = headerRows
-      .map((row) => row.find((cell) => coversColumn(cell, col))?.value)
-      .flatMap((value) => extractHeaderGroupLabels(value))
-      .filter(Boolean);
-    groupsByCol.set(col, uniqueStrings(labels).join(" / ") || `Колонка ${col}`);
-  }
+  const scheduleColumns = buildScheduleColumns(headerRows, maxCol);
+  const groupsByCol = new Map(scheduleColumns.map((column) => [column.col, column.label]));
 
   const days = [];
   let currentDay = null;
@@ -656,6 +650,8 @@ function buildScheduleModel(title, rows) {
         groups: groupLabels.join(", "),
         groupLabels,
         groupSpan: cell.colSpan || 1,
+        colIndex: Math.max(1, cell.col - 2),
+        colSpan: Math.max(1, cell.colSpan || 1),
         combined: groupLabels.length > 1 || (cell.colSpan || 1) > 1,
         raw,
         parts: lessonParts(raw),
@@ -673,6 +669,7 @@ function buildScheduleModel(title, rows) {
     hasWeekSplit: days.some((day) =>
       day.slots.some((slot) => slot.lessons.some((lesson) => lesson.week === 2))
     ),
+    columns: scheduleColumns,
     days: days
       .map((day) => ({ ...day, slots: day.slots.filter((slot) => slot.lessons.length) }))
       .filter((day) => day.slots.length)
@@ -689,6 +686,47 @@ function cleanDayName(value) {
 
 function coversColumn(cell, col) {
   return col >= cell.col && col < cell.col + (cell.colSpan || 1);
+}
+
+function buildScheduleColumns(headerRows, maxCol) {
+  const columns = [];
+  for (let col = 3; col <= maxCol; col += 1) {
+    let group = "";
+    let subgroup = "";
+
+    headerRows.forEach((row) => {
+      const value = row.find((cell) => coversColumn(cell, col))?.value;
+      const text = String(value || "").replace(/\s+/g, " ").trim();
+      const groups = extractHeaderGroupLabels(text).filter((label) => /\d/.test(label));
+      if (groups.length) {
+        group = groups[groups.length - 1];
+        return;
+      }
+      if (group && isSubgroupHeader(text)) {
+        subgroup = normalizeHeaderGroupLabel(text);
+      }
+    });
+
+    const label = group
+      ? (subgroup ? `${group} / ${subgroup}` : group)
+      : `Колонка ${col}`;
+
+    columns.push({
+      col,
+      group: group || `Колонка ${col}`,
+      subgroup,
+      label,
+    });
+  }
+  return columns;
+}
+
+function isSubgroupHeader(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text || text.length > 6) return false;
+  if (/\d{1,2}[.:]\d{2}/.test(text)) return false;
+  if (/(лек|лаб|сем|практ|экз|зач|расписан|заняти|факультет|семестр)/i.test(text)) return false;
+  return /^[\p{L}0-9.-]+$/u.test(text);
 }
 
 function uniqueStrings(items) {
@@ -870,6 +908,9 @@ function cleanLessonPart(value) {
 
 function renderScheduleCards(model, query) {
   const activeWeek = model.hasWeekSplit ? selectedWeekNumber() : null;
+  const columns = Array.isArray(model.columns) ? model.columns : [];
+  const hasColumnLayout = columns.length >= 3;
+  const columnStyle = hasColumnLayout ? `style="--schedule-columns: ${columns.length}"` : "";
   const days = model.days.map((day) => {
     const slots = mergeWeekSlots(day.slots)
       .map((slot) => ({ ...slot, lessons: filterLessonsByWeek(slot.lessons, activeWeek) }))
@@ -881,8 +922,10 @@ function renderScheduleCards(model, query) {
         const searchableLesson = [lesson.groups, lesson.raw, lesson.parts.subject, lesson.parts.teacher, lesson.parts.place].join(" ");
         const match = query && matchesSearchText(searchableLesson, query);
         const classes = ["lesson-card", match ? "match" : "", lesson.combined ? "combined" : ""].filter(Boolean).join(" ");
+        const span = hasColumnLayout ? Math.min(lesson.colSpan || 1, columns.length - (lesson.colIndex || 1) + 1) : 1;
+        const lessonStyle = hasColumnLayout ? `style="grid-column: ${lesson.colIndex || 1} / span ${span}"` : "";
         return `
-          <article class="${classes}">
+          <article class="${classes}" ${lessonStyle}>
             <div class="lesson-topline">
               <span class="lesson-week ${lesson.week === 1 ? "numerator" : "denominator"}">
                 ${lesson.week === 1 ? "числитель" : "знаменатель"}
@@ -903,7 +946,7 @@ function renderScheduleCards(model, query) {
       return `
         <div class="time-row">
           <div class="time-cell">${escapeHtml(slot.time)}</div>
-          <div class="lesson-list">${lessons}</div>
+          <div class="lesson-list ${hasColumnLayout ? "excel-layout" : ""}" ${columnStyle}>${lessons}</div>
         </div>
       `;
     }).join("");
@@ -911,6 +954,7 @@ function renderScheduleCards(model, query) {
     return `
       <section class="day-card">
         <h3>${escapeHtml(day.name)}</h3>
+        ${hasColumnLayout ? renderScheduleColumnHeader(columns) : ""}
         <div class="day-slots">${slots}</div>
       </section>
     `;
@@ -921,6 +965,37 @@ function renderScheduleCards(model, query) {
       ${model.title ? `<div class="schedule-title">${escapeHtml(model.title)}</div>` : ""}
       <div class="week-note">${weekModeText(activeWeek)}</div>
       <div class="days-list">${days}</div>
+    </div>
+  `;
+}
+
+function renderScheduleColumnHeader(columns) {
+  const groups = [];
+  columns.forEach((column) => {
+    const previous = groups[groups.length - 1];
+    if (previous && previous.group === column.group) {
+      previous.span += 1;
+    } else {
+      groups.push({ group: column.group, span: 1 });
+    }
+  });
+
+  return `
+    <div class="schedule-grid-head" style="--schedule-columns: ${columns.length}">
+      <div class="grid-head-row group-row">
+        ${groups.map((item) => `
+          <div class="grid-group-cell" style="grid-column: span ${item.span}">
+            ${escapeHtml(item.group)}
+          </div>
+        `).join("")}
+      </div>
+      <div class="grid-head-row subgroup-row">
+        ${columns.map((column) => `
+          <div class="grid-subgroup-cell">
+            ${escapeHtml(column.subgroup || column.group)}
+          </div>
+        `).join("")}
+      </div>
     </div>
   `;
 }
